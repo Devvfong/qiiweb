@@ -10,13 +10,12 @@ export default function AuthCallbackPage() {
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
     const run = async () => {
       try {
         const supabase = createClient();
-
-        // ✅ Client-side session extraction
         const { data, error } = await supabase.auth.getSessionFromUrl({ storeSession: true });
 
         if (error) {
@@ -24,7 +23,6 @@ export default function AuthCallbackPage() {
           setErrorMessage(error.message);
         } else {
           setStatus("success");
-          setTimeout(() => router.push("/auth/login"), 4000);
         }
       } catch (err: unknown) {
         setStatus("error");
@@ -33,7 +31,12 @@ export default function AuthCallbackPage() {
     };
 
     if (typeof window !== "undefined") run();
-  }, [router]);
+  }, []);
+
+  const handleGoToLogin = () => {
+    setRedirecting(true);
+    setTimeout(() => router.push("/auth/login"), 4000);
+  };
 
   if (status === "loading") {
     return (
@@ -64,8 +67,20 @@ export default function AuthCallbackPage() {
         <h1 className="text-3xl font-bold">Email Confirmed 🎉</h1>
         <p className="text-sm text-gray-200">
           Your email has been confirmed successfully.
-          You will be redirected to the login page shortly.
         </p>
+
+        {redirecting ? (
+          <p className="text-sm text-gray-200 animate-pulse">
+            You will be redirected to login...
+          </p>
+        ) : (
+          <Button
+            onClick={handleGoToLogin}
+            className="w-full text-lg py-4 rounded-2xl shadow-lg hover:scale-105 transition-transform"
+          >
+            Go to Login
+          </Button>
+        )}
       </div>
     </div>
   );
