@@ -13,10 +13,14 @@ export default function AuthCallbackPage() {
   const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
-    const run = async () => {
+    const verifyEmail = async () => {
       try {
         const supabase = createClient();
-        const { data, error } = await supabase.auth.getSessionFromUrl({ storeSession: true });
+
+        // ✅ Parse URL and store session automatically
+        const { data, error } = await supabase.auth.getSessionFromUrl({
+          storeSession: true, // this ensures the session is stored in localStorage
+        } as any); // `as any` is a temporary workaround for TS typing issues
 
         if (error) {
           setStatus("error");
@@ -30,7 +34,7 @@ export default function AuthCallbackPage() {
       }
     };
 
-    if (typeof window !== "undefined") run();
+    if (typeof window !== "undefined") verifyEmail();
   }, []);
 
   const handleGoToLogin = () => {
