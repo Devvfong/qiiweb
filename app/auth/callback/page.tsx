@@ -1,38 +1,46 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
-import { CheckCircle2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function AuthCallbackPage() {
-  const router = useRouter()
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const router = useRouter();
+  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const run = async () => {
-      const supabase = createClient()
-      const { error } = await supabase.auth.exchangeCodeForSession()
-      if (error) {
-        setStatus("error")
-        setErrorMessage(error.message)
-      } else {
-        setStatus("success")
-        // redirect to /auth/login after 4 seconds
-        setTimeout(() => router.push("/auth/login"), 5000)
+      try {
+        const supabase = createClient();
+
+        // ✅ Client-side session extraction
+        const { data, error } = await supabase.auth.getSessionFromUrl({ storeSession: true });
+
+        if (error) {
+          setStatus("error");
+          setErrorMessage(error.message);
+        } else {
+          setStatus("success");
+          setTimeout(() => router.push("/auth/login"), 4000);
+        }
+      } catch (err: unknown) {
+        setStatus("error");
+        setErrorMessage(err instanceof Error ? err.message : "Unexpected error");
       }
-    }
-    run()
-  }, [])
+    };
+
+    if (typeof window !== "undefined") run();
+  }, [router]);
 
   if (status === "loading") {
     return (
       <div className="flex min-h-[100vh] items-center justify-center bg-gradient-to-br from-black via-neutral-900 to-zinc-800 text-white">
         <p className="text-lg animate-pulse">Verifying your email...</p>
       </div>
-    )
+    );
   }
 
   if (status === "error") {
@@ -46,7 +54,7 @@ export default function AuthCallbackPage() {
           </Button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -60,5 +68,5 @@ export default function AuthCallbackPage() {
         </p>
       </div>
     </div>
-  )
+  );
 }

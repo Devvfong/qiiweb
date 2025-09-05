@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "../../../lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,8 +37,8 @@ export default function SignUpPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
+    setIsLoading(true);
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
@@ -46,12 +46,7 @@ export default function SignUpPage() {
       return;
     }
 
-    if (
-      !formData.firstName ||
-      !formData.lastName ||
-      !formData.email ||
-      !formData.password
-    ) {
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
       setError("Please fill in all required fields");
       setIsLoading(false);
       return;
@@ -62,7 +57,6 @@ export default function SignUpPage() {
         email: formData.email,
         password: formData.password,
         options: {
-          // ✅ send confirmation email that redirects to Netlify callback
           emailRedirectTo:
             process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL ||
             "https://qiiweb.netlify.app/auth/callback",
@@ -74,18 +68,16 @@ export default function SignUpPage() {
       });
 
       if (error) throw error;
-
-      // ✅ Show success message with a button to go to login
       setSignupSuccess(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+    <div className="flex min-h-svh items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-md">
         <Card>
           <CardHeader>
@@ -114,9 +106,7 @@ export default function SignUpPage() {
                     type="text"
                     required
                     value={formData.firstName}
-                    onChange={(e) =>
-                      handleInputChange("firstName", e.target.value)
-                    }
+                    onChange={(e) => handleInputChange("firstName", e.target.value)}
                   />
                 </div>
 
@@ -127,9 +117,7 @@ export default function SignUpPage() {
                     type="text"
                     required
                     value={formData.lastName}
-                    onChange={(e) =>
-                      handleInputChange("lastName", e.target.value)
-                    }
+                    onChange={(e) => handleInputChange("lastName", e.target.value)}
                   />
                 </div>
 
@@ -152,9 +140,7 @@ export default function SignUpPage() {
                     type="password"
                     required
                     value={formData.password}
-                    onChange={(e) =>
-                      handleInputChange("password", e.target.value)
-                    }
+                    onChange={(e) => handleInputChange("password", e.target.value)}
                   />
                 </div>
 
@@ -165,9 +151,7 @@ export default function SignUpPage() {
                     type="password"
                     required
                     value={formData.confirmPassword}
-                    onChange={(e) =>
-                      handleInputChange("confirmPassword", e.target.value)
-                    }
+                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
                   />
                 </div>
 
@@ -179,10 +163,7 @@ export default function SignUpPage() {
 
                 <div className="text-center text-sm">
                   Already have an account?{" "}
-                  <Link
-                    href="/auth/login"
-                    className="underline underline-offset-4"
-                  >
+                  <Link href="/auth/login" className="underline underline-offset-4">
                     Sign in
                   </Link>
                 </div>
