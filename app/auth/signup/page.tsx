@@ -1,47 +1,58 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import Link from "next/link"
+import { useState } from "react";
+import { createClient } from "../../../lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
 
 export default function SignUpPage() {
-  const router = useRouter()
-  const supabase = createClient()
+  const router = useRouter();
+  const supabase = createClient();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
-  })
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [signupSuccess, setSignupSuccess] = useState(false)
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError(null)
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match")
-      setIsLoading(false)
-      return
+      setError("Passwords do not match");
+      setIsLoading(false);
+      return;
     }
 
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-      setError("Please fill in all required fields")
-      setIsLoading(false)
-      return
+    if (
+      !formData.firstName ||
+      !formData.lastName ||
+      !formData.email ||
+      !formData.password
+    ) {
+      setError("Please fill in all required fields");
+      setIsLoading(false);
+      return;
     }
 
     try {
@@ -49,24 +60,26 @@ export default function SignUpPage() {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/login`,
+          emailRedirectTo:
+            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
+            `${window.location.origin}/auth/login`,
           data: {
             first_name: formData.firstName,
             last_name: formData.lastName,
           },
         },
-      })
+      });
 
-      if (error) throw error
+      if (error) throw error;
 
       // ✅ Show success message with a button to go to login
-      setSignupSuccess(true)
+      setSignupSuccess(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred")
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
@@ -74,13 +87,20 @@ export default function SignUpPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Create Account</CardTitle>
-            <CardDescription>Enter your information to create your account</CardDescription>
+            <CardDescription>
+              Enter your information to create your account
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {signupSuccess ? (
               <div className="text-center space-y-4">
-                <p>Signup successful! Please check your email to confirm your account.</p>
-                <Button onClick={() => router.push("/auth/login")}>Go to Sign In</Button>
+                <p>
+                  Signup successful! Please check your email to confirm your
+                  account.
+                </p>
+                <Button onClick={() => router.push("/auth/login")}>
+                  Go to Sign In
+                </Button>
               </div>
             ) : (
               <form onSubmit={handleSignUp} className="space-y-4">
@@ -91,7 +111,9 @@ export default function SignUpPage() {
                     type="text"
                     required
                     value={formData.firstName}
-                    onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("firstName", e.target.value)
+                    }
                   />
                 </div>
 
@@ -102,7 +124,9 @@ export default function SignUpPage() {
                     type="text"
                     required
                     value={formData.lastName}
-                    onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("lastName", e.target.value)
+                    }
                   />
                 </div>
 
@@ -125,7 +149,9 @@ export default function SignUpPage() {
                     type="password"
                     required
                     value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("password", e.target.value)
+                    }
                   />
                 </div>
 
@@ -136,7 +162,9 @@ export default function SignUpPage() {
                     type="password"
                     required
                     value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("confirmPassword", e.target.value)
+                    }
                   />
                 </div>
 
@@ -148,7 +176,10 @@ export default function SignUpPage() {
 
                 <div className="text-center text-sm">
                   Already have an account?{" "}
-                  <Link href="/auth/login" className="underline underline-offset-4">
+                  <Link
+                    href="/auth/login"
+                    className="underline underline-offset-4"
+                  >
                     Sign in
                   </Link>
                 </div>
@@ -158,5 +189,5 @@ export default function SignUpPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
