@@ -1,192 +1,65 @@
 "use client";
 
-import { useState } from "react";
-import { createClient } from "../../../lib/supabase/client";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import Link from "next/link";
-export const dynamic = "force-dynamic"; 
-export default function SignUpPage() {
+
+export default function AuthCallbackPage() {
   const router = useRouter();
-  const supabase = createClient();
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [status, setStatus] = useState<"loading" | "success" | "error">(
+    "loading"
+  );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+  useEffect(() => {
+    const run = async () => {
+      const supabase = createClient();
+      const { error } = await supabase.auth.exchangeCodeForSession();
+      if (error) {
+        setStatus("error");
+        setErrorMessage(error.message);
+      } else {
+        setStatus("success");
+        // redirect to /auth/login after 4 seconds
+        setTimeout(() => router.push("/auth/login"), 4000);
+      }
+    };
+    run();
+  }, []);
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-[100vh] items-center justify-center bg-gradient-to-br from-black via-neutral-900 to-zinc-800 text-white">
+        <p className="text-lg animate-pulse">Verifying your email...</p>
+      </div>
+    );
+  }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      setIsLoading(false);
-      return;
-    }
-
-    if (
-      !formData.firstName ||
-      !formData.lastName ||
-      !formData.email ||
-      !formData.password
-    ) {
-      setError("Please fill in all required fields");
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const { error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
-            `${window.location.origin}/auth/login`,
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-          },
-        },
-      });
-
-      if (error) throw error;
-
-      // ✅ Show success message with a button to go to login
-      setSignupSuccess(true);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  if (status === "error") {
+    return (
+      <div className="flex min-h-[100vh] items-center justify-center bg-red-950 text-red-200">
+        <div className="p-8 rounded-2xl bg-red-900/30 backdrop-blur-lg shadow-xl max-w-md text-center space-y-4">
+          <p className="text-xl font-semibold">Verification failed</p>
+          <p className="text-sm">{errorMessage}</p>
+          <Button onClick={() => router.push("/auth/login")} className="w-full">
+            Back to Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-md">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Create Account</CardTitle>
-            <CardDescription>
-              Enter your information to create your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {signupSuccess ? (
-              <div className="text-center space-y-4">
-                <p>
-                  Signup successful! Please check your email to confirm your
-                  account.
-                </p>
-                <Button onClick={() => router.push("/auth/login")}>
-                  Go to Sign In
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name *</Label>
-                  <Input
-                    id="firstName"
-                    type="text"
-                    required
-                    value={formData.firstName}
-                    onChange={(e) =>
-                      handleInputChange("firstName", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name *</Label>
-                  <Input
-                    id="lastName"
-                    type="text"
-                    required
-                    value={formData.lastName}
-                    onChange={(e) =>
-                      handleInputChange("lastName", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    required
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password *</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={(e) =>
-                      handleInputChange("password", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    required
-                    value={formData.confirmPassword}
-                    onChange={(e) =>
-                      handleInputChange("confirmPassword", e.target.value)
-                    }
-                  />
-                </div>
-
-                {error && <p className="text-red-500">{error}</p>}
-
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Creating Account..." : "Create Account"}
-                </Button>
-
-                <div className="text-center text-sm">
-                  Already have an account?{" "}
-                  <Link
-                    href="/auth/login"
-                    className="underline underline-offset-4"
-                  >
-                    Sign in
-                  </Link>
-                </div>
-              </form>
-            )}
-          </CardContent>
-        </Card>
+    <div className="flex min-h-[100vh] items-center justify-center bg-gradient-to-br from-indigo-950 via-purple-900 to-pink-900 text-white">
+      <div className="p-10 rounded-3xl bg-white/10 backdrop-blur-xl shadow-2xl max-w-md w-full text-center space-y-6 animate-fade-in">
+        <CheckCircle2 className="mx-auto w-20 h-20 text-green-400 drop-shadow-lg" />
+        <h1 className="text-3xl font-bold">Email Confirmed 🎉</h1>
+        <p className="text-sm text-gray-200">
+          Your email has been confirmed successfully. You will be redirected to
+          the login page shortly.
+        </p>
       </div>
     </div>
   );
