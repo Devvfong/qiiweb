@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+
 import {
   Card,
   CardContent,
@@ -30,44 +31,6 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
-
-  // Vanta refs
-  const vantaRef = useRef<HTMLDivElement>(null);
-  const vantaEffect = useRef<any>(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadVanta = async () => {
-      const VANTA = (await import("vanta/dist/vanta.topology.min")).default;
-      const p5 = (await import("p5")).default;
-
-      if (mounted && !vantaEffect.current && vantaRef.current) {
-        vantaEffect.current = VANTA({
-          el: vantaRef.current,
-          p5,
-          mouseControls: true,
-          touchControls: true,
-          gyroControls: false,
-          minHeight: 200.0,
-          minWidth: 200.0,
-          scale: 1.0,
-          scaleMobile: 1.0,
-          color: 0xaac548,
-        });
-      }
-    };
-
-    loadVanta();
-
-    return () => {
-      mounted = false;
-      if (vantaEffect.current) {
-        vantaEffect.current.destroy();
-        vantaEffect.current = null;
-      }
-    };
-  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -113,26 +76,34 @@ export default function SignUpPage() {
       if (error) throw error;
       setSignupSuccess(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred"
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="relative min-h-svh flex items-center justify-center p-6 md:p-10">
-      {/* Vanta background */}
-      <div ref={vantaRef} className="absolute inset-0 -z-10" />
-
+    <div
+      className="relative min-h-svh flex items-center justify-center p-6 md:p-10"
+      style={{
+        background:
+          "linear-gradient(135deg, #0f2027 0%, #2c5364 60%, #005c97 100%)",
+      }}
+    >
       <div className="w-full max-w-md relative z-10">
         <Card className="bg-transparent border border-white/30 shadow-xl rounded-2xl">
           <CardHeader>
-            <CardTitle className="text-2xl text-white">Create Account</CardTitle>
+            <CardTitle className="text-2xl text-white">
+              Create Account
+            </CardTitle>
             <CardDescription className="text-gray-200">
               Enter your information to create your account
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* OAuthButtons removed as requested */}
             {signupSuccess ? (
               <div className="text-center space-y-4 text-white">
                 <p>
@@ -154,7 +125,9 @@ export default function SignUpPage() {
                     type="text"
                     required
                     value={formData.firstName}
-                    onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("firstName", e.target.value)
+                    }
                     className="bg-transparent border-white/40 text-white placeholder-gray-300"
                   />
                 </div>
@@ -168,7 +141,9 @@ export default function SignUpPage() {
                     type="text"
                     required
                     value={formData.lastName}
-                    onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("lastName", e.target.value)
+                    }
                     className="bg-transparent border-white/40 text-white placeholder-gray-300"
                   />
                 </div>
@@ -197,7 +172,9 @@ export default function SignUpPage() {
                     type="password"
                     required
                     value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("password", e.target.value)
+                    }
                     className="bg-transparent border-white/40 text-white placeholder-gray-300"
                   />
                 </div>
@@ -211,7 +188,9 @@ export default function SignUpPage() {
                     type="password"
                     required
                     value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("confirmPassword", e.target.value)
+                    }
                     className="bg-transparent border-white/40 text-white placeholder-gray-300"
                   />
                 </div>

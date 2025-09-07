@@ -1,30 +1,45 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-
 // @ts-ignore
-import NET from "vanta/dist/vanta.net.min";
+import CLOUDS from "vanta/dist/vanta.clouds.min";
 // @ts-ignore
 import * as THREE from "three";
 
-export default function VantaBackground() {
+interface VantaBackgroundProps {
+  className?: string;
+}
+
+export default function VantaBackground({
+  className = "",
+}: VantaBackgroundProps) {
   const vantaRef = useRef<HTMLDivElement>(null);
   const vantaEffect = useRef<any>(null);
 
   useEffect(() => {
     if (!vantaEffect.current && vantaRef.current) {
-      vantaEffect.current = NET({
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) return;
+
+      vantaEffect.current = CLOUDS({
         el: vantaRef.current,
-        THREE: THREE,
-        color: 0xff3f81, // line color
-        backgroundColor: 0x23153c, // background color
-        points: 10, // number of nodes
-        maxDistance: 20, // max connection distance
-        spacing: 15, // spacing between points
-        showDots: true, // must be true for color to apply to lines
+        THREE,
+        mouseControls: false, // disables mouse controls for less CPU
+        touchControls: false, // disables touch controls for less CPU
+        // gyroControls: false,
+        minHeight: 200,
+        minWidth: 200,
+        scale: 0.45, // lower scale for smoother perf
+        scaleMobile: 0.3,
+        skyColor: 0x202040,
+        cloudColor: 0xffffff,
+        cloudShadowColor: 0x000000,
+        sunColor: 0xff9900,
+        sunGlareColor: 0xffdd33,
+        sunlightColor: 0xffffff,
+        // You can try adding: cloudShadow: false, if supported
       });
     }
-
     return () => {
       if (vantaEffect.current) {
         vantaEffect.current.destroy();
@@ -34,6 +49,15 @@ export default function VantaBackground() {
   }, []);
 
   return (
-    <div ref={vantaRef} className="absolute inset-0 w-full h-screen -z-10" />
+    <div
+      ref={vantaRef}
+      className={`absolute inset-0 w-full h-full -z-10 will-change-transform bg-[#202040] ${className}`}
+      style={{
+        WebkitBackfaceVisibility: "hidden",
+        backfaceVisibility: "hidden",
+        WebkitTransform: "translateZ(0)",
+        transform: "translateZ(0)",
+      }}
+    />
   );
 }

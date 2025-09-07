@@ -1,3 +1,48 @@
+/* Floating and tilt animation for card */
+.card-float-tilt {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.5s;
+  animation: cardFloat 5s ease-in-out infinite;
+  will-change: transform;
+}
+
+.group:hover .card-float-tilt {
+  transform: rotateY(8deg) scale(1.025) translateY(-6px) skewX(-2deg);
+  box-shadow: 0 16px 40px 0 rgba(140, 82, 255, 0.18), 0 2px 8px 0 rgba(140, 82, 255, 0.10);
+}
+
+@keyframes cardFloat {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-12px) scale(1.015);
+  }
+}
+
+/* Animated gradient background for live effect */
+.animated-gradient-bg {
+  background: linear-gradient(270deg, #e0c3fc, #8ec5fc, #a9c9ff, #fbc2eb, #b39ddb, #e0c3fc);
+  background-size: 400% 400%;
+  animation: gradientMove 18s ease-in-out infinite;
+}
+
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -119,6 +164,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
