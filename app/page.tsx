@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import OAuthButtons from "@/components/OAuthButtons";
 import {
   Card,
   CardContent,
@@ -103,7 +104,7 @@ export default function LoginPage() {
                 {isLoading ? "Logging in..." : "Login"}
               </Button>
             </form>
-
+            <OAuthButtons />
             <div className="text-center text-sm text-gray-200 mt-4">
               Don't have an account?{" "}
               <Link
