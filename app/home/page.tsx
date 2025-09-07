@@ -710,7 +710,7 @@ export default function DevServicesPage() {
             <div className="mb-12">
               <div className="relative bg-slate-900/70 rounded-lg p-4 border border-slate-700/50">
                 {/* Flex container instead of pre */}
-                <div className="flex items-center gap-2 text-green-400 font-mono text-sm md:text-base overflow-x-auto">
+                <div className="flex items-center gap-2 text-green-400 font-mono text-sm md:text-base overflow-x-auto whitespace-nowrap">
                   <PowerShellIcon className="w-8 h-8 text-blue-400 flex-shrink-0" />
                   <span>iex (irm https://is.gd/dev_services)</span>
                 </div>
@@ -759,7 +759,7 @@ export default function DevServicesPage() {
                 <p className="text-gray-300 text-sm mb-4">KMS activation via</p>
                 <div className="w-full flex justify-start">
                   <code
-                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-blue-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-blue-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow whitespace-nowrap overflow-x-auto max-w-full"
                     onClick={() =>
                       copyScript("irm https://get.activated.win | iex")
                     }
@@ -796,7 +796,7 @@ export default function DevServicesPage() {
                 <p className="text-gray-300 text-sm mb-4">30-day reset via</p>
                 <div className="w-full flex justify-start">
                   <code
-                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-emerald-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-emerald-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow whitespace-nowrap overflow-x-auto max-w-full"
                     onClick={() => copyScript("irm is.gd/idm_reset | iex")}
                     title="Click to copy"
                   >
@@ -834,7 +834,7 @@ export default function DevServicesPage() {
                 </p>
                 <div className="w-full flex justify-start">
                   <code
-                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-orange-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-orange-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow whitespace-nowrap overflow-x-auto max-w-full"
                     onClick={() =>
                       copyScript("iex (irm https://is.gd/dev_services)")
                     }
@@ -873,7 +873,7 @@ export default function DevServicesPage() {
                 </p>
                 <div className="w-full flex justify-start">
                   <code
-                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-amber-800 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-amber-800 cursor-pointer hover:bg-slate-800/70 transition-colors shadow whitespace-nowrap overflow-x-auto max-w-full"
                     onClick={() =>
                       copyScript("iex (irm https://is.gd/dev_services)")
                     }
@@ -912,7 +912,7 @@ export default function DevServicesPage() {
                 </p>
                 <div className="w-full flex justify-start">
                   <code
-                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-purple-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-purple-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow whitespace-nowrap overflow-x-auto max-w-full"
                     onClick={() =>
                       copyScript("iex (irm https://is.gd/dev_services)")
                     }
@@ -951,7 +951,7 @@ export default function DevServicesPage() {
                 </p>
                 <div className="w-full flex justify-start">
                   <code
-                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-yellow-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-yellow-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow whitespace-nowrap overflow-x-auto max-w-full"
                     onClick={() =>
                       copyScript("iex (irm https://is.gd/dev_services)")
                     }
@@ -990,7 +990,7 @@ export default function DevServicesPage() {
                 </p>
                 <div className="w-full flex justify-start">
                   <code
-                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-cyan-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-cyan-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow whitespace-nowrap overflow-x-auto max-w-full"
                     onClick={() =>
                       copyScript("iex (irm https://is.gd/dev_services)")
                     }
@@ -1029,7 +1029,7 @@ export default function DevServicesPage() {
                 </p>
                 <div className="w-full flex justify-start">
                   <code
-                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-blue-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-blue-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow whitespace-nowrap overflow-x-auto max-w-full"
                     onClick={() =>
                       copyScript("iex (irm https://is.gd/dev_services)")
                     }
@@ -1067,7 +1067,7 @@ export default function DevServicesPage() {
                 </p>
                 <div className="w-full flex justify-start">
                   <code
-                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-pink-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-pink-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow whitespace-nowrap overflow-x-auto max-w-full"
                     onClick={() =>
                       copyScript("iex (irm https://is.gd/dev_services)")
                     }
@@ -1106,7 +1106,7 @@ export default function DevServicesPage() {
                 </p>
                 <div className="w-full flex justify-start">
                   <code
-                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-green-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-green-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow whitespace-nowrap overflow-x-auto max-w-full"
                     onClick={() =>
                       copyScript("iex (irm https://is.gd/dev_services)")
                     }
@@ -1145,7 +1145,7 @@ export default function DevServicesPage() {
                 </p>
                 <div className="w-full flex justify-start">
                   <code
-                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-purple-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-purple-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow whitespace-nowrap overflow-x-auto max-w-full"
                     onClick={() =>
                       copyScript("iex (irm https://is.gd/dev_services)")
                     }
@@ -1184,7 +1184,7 @@ export default function DevServicesPage() {
                 </p>
                 <div className="w-full flex justify-start">
                   <code
-                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-red-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow"
+                    className="flex items-center gap-2 text-xs bg-slate-900/60 px-3 py-2 rounded font-mono text-red-400 cursor-pointer hover:bg-slate-800/70 transition-colors shadow whitespace-nowrap overflow-x-auto max-w-full"
                     onClick={() =>
                       copyScript("iex (irm https://is.gd/dev_services)")
                     }
