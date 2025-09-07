@@ -360,7 +360,9 @@ export default function DevServicesPage() {
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#@!%&*()[]{}<>|/\\-=+_~";
 
     // Each drop will have its own speed for more natural effect
-    let speeds: number[] = Array(columns).fill(0).map(() => 0.5 + Math.random() * 0.7); // 0.5-1.2 px per frame
+    let speeds: number[] = Array(columns)
+      .fill(0)
+      .map(() => 0.5 + Math.random() * 0.7); // 0.5-1.2 px per frame
 
     function resize() {
       width = window.innerWidth;
@@ -370,7 +372,9 @@ export default function DevServicesPage() {
       canvas.height = height;
       columns = Math.floor(width / fontSize);
       drops = Array(columns).fill(1);
-      speeds = Array(columns).fill(0).map(() => 0.5 + Math.random() * 0.7);
+      speeds = Array(columns)
+        .fill(0)
+        .map(() => 0.5 + Math.random() * 0.7);
     }
 
     let lastDraw = 0;
