@@ -53,8 +53,8 @@ export default function LoginPage() {
           "linear-gradient(135deg, #0f2027 0%, #2c5364 60%, #005c97 100%)",
       }}
     >
-      <div className="w-full max-w-sm relative z-10">
-        <Card className="bg-transparent border border-white/30 shadow-xl rounded-2xl">
+      <div className="w-full max-w-sm relative z-10 group">
+        <Card className="bg-transparent border border-white/30 shadow-xl rounded-2xl card-float-tilt">
           <CardHeader>
             <CardTitle className="text-2xl text-white">Login</CardTitle>
             <CardDescription className="text-gray-200">

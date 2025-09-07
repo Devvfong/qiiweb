@@ -18,13 +18,39 @@ const MicrosoftIcon = () => (
   </svg>
 );
 
-type Provider = "github" | "google" | "facebook" | "microsoft" | "linkedin" | "gitlab";
-const providers: { name: Provider; icon: JSX.Element; label: string; color: string }[] = [
+type Provider =
+  | "github"
+  | "google"
+  | "facebook"
+  | "microsoft"
+  | "linkedin"
+  | "gitlab";
+const providers: {
+  name: Provider;
+  icon: JSX.Element;
+  label: string;
+  color: string;
+}[] = [
   { name: "github", icon: <FaGithub />, label: "GitHub", color: "#181717" },
   { name: "google", icon: <FaGoogle />, label: "Google", color: "#EA4335" },
-  { name: "facebook", icon: <FaFacebook />, label: "Facebook", color: "#1877F3" },
-  { name: "microsoft", icon: <MicrosoftIcon />, label: "Microsoft", color: "#5E5E5E" },
-  { name: "linkedin", icon: <FaLinkedin />, label: "LinkedIn", color: "#0077B5" },
+  {
+    name: "facebook",
+    icon: <FaFacebook />,
+    label: "Facebook",
+    color: "#1877F3",
+  },
+  {
+    name: "microsoft",
+    icon: <MicrosoftIcon />,
+    label: "Microsoft",
+    color: "#5E5E5E",
+  },
+  {
+    name: "linkedin",
+    icon: <FaLinkedin />,
+    label: "LinkedIn",
+    color: "#0077B5",
+  },
   { name: "gitlab", icon: <FaGitlab />, label: "GitLab", color: "#FC6D26" },
 ];
 
@@ -44,12 +70,23 @@ export default function OAuthButtons() {
               key={p.name}
               type="button"
               className="flex items-center gap-2 justify-start bg-transparent text-gray-900 font-semibold border border-white hover:bg-transparent hover:text-white hover:scale-105 transition-transform px-4 py-2 w-40"
-              style={{ minWidth: '10rem' }}
+              style={{ minWidth: "10rem" }}
               onClick={() => handleOAuth(p.name)}
               title={`Continue with ${p.label}`}
             >
-              <span style={{ color: p.color, display: 'flex', alignItems: 'center', fontSize: '1.5rem' }}>{p.icon}</span>
-              <span className="ml-2" style={{ color: 'inherit' }}>{p.label}</span>
+              <span
+                style={{
+                  color: p.color,
+                  display: "flex",
+                  alignItems: "center",
+                  fontSize: "1.5rem",
+                }}
+              >
+                {p.icon}
+              </span>
+              <span className="ml-2" style={{ color: "inherit" }}>
+                {p.label}
+              </span>
             </Button>
           ))}
         </div>
