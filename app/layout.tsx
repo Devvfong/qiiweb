@@ -4,11 +4,11 @@ import { GeistMono } from "geist/font/mono";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import ProgressBar from "@/components/ProgressBar";
+import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
-  title: "Qii services",
-  description: "",
-  generator: "",
+  title: "Qii Services",
+  description: "Dev-Services CLI — Activate Windows, Reset IDM, and grab deployment tools in one line.",
 };
 
 export default function RootLayout({
@@ -19,9 +19,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <ProgressBar />
-        {children}
-        <Analytics />
+        <Providers>
+          <ProgressBar />
+          {children}
+          <Analytics />
+        </Providers>
       </body>
     </html>
   );

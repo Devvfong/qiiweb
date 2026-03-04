@@ -5,10 +5,37 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// ─── Rate limiter: max 3 reset requests per IP per 15 min ─────────────────────
+const resetMap = new Map<string, { count: number; resetAt: number }>();
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = resetMap.get(ip);
+  if (!entry || now > entry.resetAt) { resetMap.set(ip, { count: 1, resetAt: now + 15 * 60 * 1000 }); return true; }
+  if (entry.count >= 3) return false;
+  entry.count++;
+  return true;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await req.json();
+    // Origin guard
+    const origin  = req.headers.get("origin")  ?? "";
+    const referer = req.headers.get("referer") ?? "";
+    const appUrl  = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+    if ((origin && !origin.startsWith(appUrl)) || (referer && !referer.startsWith(appUrl))) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
+
+    // Rate limit
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? req.headers.get("x-real-ip") ?? "unknown";
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json({ error: "Too many requests. Please wait 15 minutes." }, { status: 429 });
+    }
+
+    const body = await req.json().catch(() => null);
+    const email = body?.email?.trim().toLowerCase();
     if (!email) return NextResponse.json({ error: "Email is required." }, { status: 400 });
+
 
     const user = await prisma.user.findUnique({ where: { email } });
 
@@ -39,7 +66,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    await resend.emails.send({
+    const { data, error: resendError } = await resend.emails.send({
       from: "Qii Services <noreply@devqii.me>",
       to: email,
       subject: "Reset your Qii Services password",
@@ -65,6 +92,14 @@ export async function POST(req: NextRequest) {
         </div>
       `,
     });
+
+    console.log("[resend] data:", JSON.stringify(data));
+    console.log("[resend] error:", JSON.stringify(resendError));
+
+    if (resendError) {
+      console.error("[resend] Failed to send:", resendError);
+      return NextResponse.json({ error: "Failed to send reset email. Please try again." }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (err) {
